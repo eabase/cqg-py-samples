@@ -1,0 +1,221 @@
+syntax = "proto2";
+
+// Metadata related messages
+
+package metadata_1;
+
+import "common/shared_1.proto";
+
+// Client meta-data messages.
+// Only one rule operation is allowed.
+message MetadataAdminRequest
+{
+   // Request identifier.
+   required string request_id = 1;
+
+   // Request security parameters.
+   optional GetSecurityParameters get_security_parameters = 2;
+
+   // Set security level parameters.
+   optional SetSecurityParameters set_security_parameters = 3;
+
+   // Publish a new contract or publish changes of an existing contract.
+   optional PublishContract publish_contract = 5;
+
+   // Remove a previous published contract from public access.
+   optional UnpublishContract unpublish_contract = 6;
+
+   // Get contract level parameters.
+   optional GetContractParameters get_contract_parameters = 7;
+}
+
+// Server meta-data messages.
+message MetadataAdminResult
+{
+   enum ResultCode
+   {
+      /// success codes (0 - 100)
+      SUCCESS = 0;
+
+      //// failure codes (100+)
+      // General failure.
+      FAILURE = 101;
+
+      // The request rate limit has been violated.
+      REQUEST_RATE_LIMIT_VIOLATION = 102;
+   }
+   
+   // ID of a corresponding request or subscription.
+   required string request_id = 1;
+
+   // Operation status.
+   // This field is associated with ResultCode enum.
+   required uint32 result_code = 2;
+
+   // Operation details.
+   optional shared_1.Text details = 3;
+
+   // Result of security parameters request.
+   optional GetSecurityParametersResult get_security_parameters_result = 4;
+
+   // Result of security parameters update.
+   optional SetSecurityParametersResult set_security_parameters_result = 5;
+
+   // Result of contract publishing.
+   optional PublishContractResult publish_contract_result = 6;
+
+   // Result of contract unpublishing.
+   optional UnpublishContractResult unpublish_contract_result = 7;
+
+   // Result of contract parameters request.
+   optional GetContractParametersResult get_contract_parameters_result = 8;
+}
+
+// Contributor with attached parameters.
+message ContributorParameters
+{
+   // Contributor identifiers.
+   required string contributor_id = 1;
+
+   // List of custom parameters.
+   repeated shared_1.NamedValue parameter = 2;
+}
+
+// Get security level parameters.
+message GetSecurityParameters
+{
+   // Security identifier.
+   required string security_id = 1;
+
+   // Contributor identifiers.
+   repeated string contributor_id = 2;
+}
+
+// Result of security parameters update.
+message GetSecurityParametersResult
+{
+   // Security identifier.
+   required string security_id = 1;
+
+   // Security custom parameters.
+   repeated ContributorParameters contributor_parameters = 2;
+}
+
+// Set security level parameters.
+message SetSecurityParameters
+{
+   // Security identifier.
+   required string security_id = 1;
+
+   // Security custom parameters.
+   // Client includes only parameters that are changed (added, updated or deleted).
+   repeated ContributorParameters contributor_parameters = 2;
+}
+
+// Result of security parameters update.
+message SetSecurityParametersResult
+{
+   // Security identifier.
+   required string security_id = 1;
+
+   // Security custom parameters after the change.
+   // The full list of parameters as a result of this update.
+   repeated ContributorParameters contributor_parameters = 2;
+}
+
+// Publish a new contract or publish changes of an existing contract.
+// Modification is incremental - only specified fields are modified, if the filed is not specified then it is not touched.
+// Some fields cannot be modified.
+message PublishContract
+{
+   // Security identifier for which contract is created. Unmodifiable.
+   optional string security_id = 1;
+
+   // Contract's maturity date.
+   // (local exchange date in time format, use date part only).
+   optional sint64 maturity_date = 2;
+
+   // Contract trading date for derivatives
+   // (local exchange date in time format, use date part only).
+   optional sint64 last_trading_date = 3;
+
+   // Source contract identifier for double-quoting.
+   optional uint32 source_contract_id = 4;
+
+   // Contract first notice date
+   // (local exchange date in time format, use date part only).
+   optional sint64 first_notice_date = 5;
+
+   // Contract last delivery date
+   // (local exchange date in time format, use date part only).
+   optional sint64 last_delivery_date = 6;
+
+   // Contract custom parameters.
+   // Client includes all initial values.
+   repeated ContributorParameters contributor_parameters = 7;
+
+   // Contract description.
+   optional string description = 8;
+
+   // Publish contract in a preview mode. Contract will be visible only for the current user,
+   // until it will be published when flag is set in false or omitted.
+   // Preview contract does not persist between user sessions.
+   optional bool preview = 9;
+
+   // ID of the previously published contract.
+   // Used for overriding contract parameters or final publishing.
+   // Take the value from contract_id of previous PublishContractResult.
+   optional uint32 previous_contract_id = 10;
+
+   // Identifiers of fields being cleared.
+   // E.g. To clear first_notice_date field, put 5 in this collection.
+   repeated uint32 cleared_fields = 11;
+}
+
+// Result of contract publishing.
+message PublishContractResult
+{
+   // Assigned contract ID for the published contract if successful.
+   // Complete meta-data can be requested by ContractMetadataRequest message.
+   optional uint32 contract_id = 1;
+
+   // Symbol id for the published contract if successful.
+   // Complete meta-data can be requested by SymbolRequest message.
+   optional string symbol_id = 2;
+}
+
+// Remove previous published contract from public access.
+message UnpublishContract
+{
+   // Contract identifier.
+   optional uint32 contract_id = 1;
+
+   // Contributor identifiers which are affected by the action.
+   // Note: Unused in current version.
+   repeated string contributor_id = 2;
+}
+
+// Result of contract unpublishing. 
+message UnpublishContractResult
+{
+}
+
+// Get contract level parameters.
+message GetContractParameters
+{
+   // Contract identifier.
+   required uint32 contract_id = 1;
+
+   // Contributor identifiers.
+   repeated string contributor_id = 2;
+}
+
+// Result of contract parameters request.
+message GetContractParametersResult
+{
+   // Contract identifier.
+   required uint32 contract_id = 1;
+
+   // Contract custom parameters.
+   repeated ContributorParameters contributor_parameters = 2;
+}

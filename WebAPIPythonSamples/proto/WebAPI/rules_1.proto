@@ -1,0 +1,208 @@
+syntax = "proto2";
+
+// Rules server messages
+// Times are in google.protobuf.Timestamp since Unix Epoch on January 1st, 1970
+
+package rules_1;
+
+import "common/shared_1.proto";
+import "common/timestamp.proto";
+
+////------------------------------------------
+//// Rule messages
+
+// Client rule messages.
+// Only one rule operation is allowed.
+message RuleRequest
+{
+   // Request identifier.
+   required string request_id = 1;
+
+   // Create or update a rule.
+   optional SetRuleRequest set_rule_request = 2;
+
+   // Delete a rule.
+   optional DeleteRuleRequest delete_rule_request = 3;
+
+   // Get a list of rules.
+   optional RulesListRequest rules_list_request = 4;
+
+   // Request notification history.
+   optional NotificationHistoryRequest notification_history_request = 5;
+}
+
+// Server rule messages.
+message RuleResult
+{
+   enum ResultCode
+   {
+      /// success codes (0 - 100)
+      SUCCESS = 0;
+
+      //// failure codes (100+)
+      // General failure.
+      FAILURE = 101;
+   }
+   
+   // ID of a corresponding request or subscription.
+   required string request_id = 1;
+
+   // Operation status.
+   // This field is associated with ResultCode enum.
+   required uint32 result_code = 2;
+
+   // Operation details.
+   optional shared_1.Text details = 3;
+
+   // Result of set rule operation.
+   optional SetRuleResult set_rule_result = 4;
+
+   // Result of delete rule operation.
+   optional DeleteRuleResult delete_rule_result = 5;
+
+   // Result of rules list request.
+   optional RulesListResult rules_list_result = 6;
+
+   // Result of notification history request.
+   optional NotificationHistoryResult notification_history_result = 7;
+}
+
+
+////------------------------------------------
+//// Rule entities
+
+// Rule definition contains one of the specific rules.
+// Only one specific rule can be specified.
+message RuleDefinition
+{
+   // Client ID of the rule. 
+   // It has to be unique for this client.
+   required string rule_id = 1;
+
+   // List of optional client rule tags, the value is ignored.
+   repeated string rule_tag = 2 [deprecated = true];
+
+   // Rule expiration time, the value is ignored.
+   optional google.protobuf.Timestamp expiration_utc_timestamp = 3 [deprecated = true];
+
+   // List of actions for rule execution.
+   repeated Action action = 4;
+
+   // Order event rule definition.
+   optional OrderEventRule order_event_rule = 5;
+
+   // True means the rule is in execution.
+   // To enable or disable the rule the client updates the rule
+   // with a corresponding values of this flag.
+   optional bool enabled = 6 [default = true];
+}
+
+// Possible actions for rule execution.
+// Only notifications are supported at the moment.
+message Action
+{
+   // List of destinations to notify.
+   repeated shared_1.Destination destination = 4;
+}
+
+// Order event notification rule.
+// Use it to get notifications for order events.
+message OrderEventRule
+{
+   // Optional list of accounts.
+   // All accounts of the client if not specified.
+   repeated sint32 account_id = 1;
+
+   // Optional list of order statuses that server will notify about.
+   // The server will notify about all order statuses if not specified.
+   // Associated with shared_1.OrderStatus.Status enum type.
+   repeated uint32 order_status = 2;
+
+   // Optional list of transaction statuses that server will notify about.
+   // The server will notify about all transaction statuses if not specified.
+   // Note: if it's specified along with order_status field only notifications matching both filters will be sent.
+   // Associated with shared_1.TransactionStatus.Status enum type.
+   repeated uint32 transaction_status = 3;
+}
+
+// Notification by a history request.
+message NotificationReport
+{
+   // Notification title.
+   required shared_1.Text title = 1;
+
+   // Notification body.
+   required shared_1.Text body = 2;
+
+   // Rule ID that triggered corresponding action.
+   required string rule_id = 3;
+
+   // Optional notification specific information.
+   repeated shared_1.NotificationProperty notification_property = 4;
+
+   // Time when the notification was triggered.
+   required google.protobuf.Timestamp when_utc_timestamp = 5;
+}
+
+////------------------------------------------
+//// Rule operations
+
+// Create or update a rule.
+message SetRuleRequest
+{
+   // Definition of the rule.
+   // The complete definition is expected 
+   // regardless if these are new rules of updates.
+   required RuleDefinition rule_definition = 1;
+}
+
+// Result of set rule operation.
+message SetRuleResult
+{
+}
+
+// Delete a rule.
+message DeleteRuleRequest
+{
+   // Rule to delete.
+   required string rule_id = 1;
+}
+
+// Result of delete rule operation.
+message DeleteRuleResult
+{
+}
+
+// Get a list of rules.
+message RulesListRequest
+{
+   // Optional filter with a list of tags, the value is ignored.
+   repeated string rule_tag = 1 [deprecated = true];
+}
+
+// Result of rules list request.
+message RulesListResult
+{
+   // List of found rules.
+   repeated RuleDefinition rule_definition = 1;
+}
+
+// Request for notifications history.
+// The history is limited to 30 last days.
+message NotificationHistoryRequest
+{
+   // Start point for the history request, inclusive.
+   // Maximum allowed history is returned if omitted.
+   optional google.protobuf.Timestamp from_utc_timestamp = 1;
+
+   // Stop point for the history request, inclusive.
+   // History up till now is returned if omitted.
+   optional google.protobuf.Timestamp to_utc_timestamp = 2;
+}
+
+// Result of notification history request.
+message NotificationHistoryResult
+{
+   // List of notifications.
+   repeated NotificationReport notification_report = 1;
+}
